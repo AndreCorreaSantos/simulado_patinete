@@ -56,6 +56,8 @@ extern void xPortSysTickHandler(void);
 void io_init(void);
 QueueHandle_t xQueuePotencia;
 QueueHandle_t xQueueDt;
+
+volatile int time;
 /************************************************************************/
 /* RTOS application funcs                                               */
 /************************************************************************/
@@ -94,7 +96,7 @@ void but3_callback(void) {
 }
 
 void leitura_callback(void){
-  int time = rtt_read_timer_value(RTT);//le o valor do timer
+  time = rtt_read_timer_value(RTT);//le o valor do timer
   rtt_init(RTT,1);//resetando valor do timer
   BaseType_t xHigherPriorityTaskWoken = pdTRUE;
   xQueueSendFromISR(xQueueDt, &time, &xHigherPriorityTaskWoken);
@@ -140,7 +142,7 @@ static void task_main(void *pvParameters) {
   int last_time;
   rtt_init(RTT,1); //inicia timer pela primeira vez;
 	for (;;)  {
-    if(xQueueReceive(xQueuePotencia,&(ultimo_valor),1000)){
+    if(xQueueReceive(xQueuePotencia,&(ultimo_valor),(TickType_t) 0)){
 
       if((potencia + ultimo_valor <= 3) && (potencia+ultimo_valor >= 0)){ //incrementar potencia somente se o incremento nao passa do limite
         potencia += ultimo_valor;
@@ -148,8 +150,8 @@ static void task_main(void *pvParameters) {
       set_Leds(potencia); //setando leds baseado na potencia
       patinete_power(potencia); //chamando funcao patinete power
     }
-    if(xQueueReceive(xQueueDt,&last_time,10)){
-      velocidade = (2*3.14/((float) last_time*0.01))*0.2*3.6;
+    if(xQueueReceive(xQueueDt,&last_time,(TickType_t) 0)){
+      velocidade = (2*3.14/((float) last_time*0.01))*0.2*3.6*100;
       sprintf(velocidade_str,"%f km/h",velocidade);
       gfx_mono_draw_string(velocidade_str, 20, 20, &sysfont);
     }
